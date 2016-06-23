@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/mvc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+
+	<!-- DispatcherServlet Context: defines this servlet's request-processing 
+		infrastructure -->
+		
+		
+	<context:component-scan base-package="com.salestock.controller" />
+
+	<tx:annotation-driven transaction-manager="transactionManager" />
+
+	<beans:bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<beans:property name="ignoreUnresolvablePlaceholders"
+			value="true" />
+		<beans:property name="locations">
+			<beans:list>
+				<beans:value>classpath:app.properties</beans:value>
+			</beans:list>
+		</beans:property>
+	</beans:bean>
+
+	<!-- Enables the Spring MVC @Controller programming model -->
+	<annotation-driven />
+
+	<!-- Handles HTTP GET requests for /resources/** by efficiently serving 
+		up static resources in the ${webappRoot}/resources directory -->
+	<resources mapping="/resources/**" location="/resources/" />
+
+	<!-- Resolves views selected for rendering by @Controllers to .jsp resources 
+		in the /WEB-INF/views directory -->
+	<beans:bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<beans:property name="prefix" value="/WEB-INF/views/" />
+		<beans:property name="suffix" value=".jsp" />
+	</beans:bean>
+
+	<beans:bean
+		class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<beans:property name="contentNegotiationManager" ref="cnManager" />
+		<beans:property name="viewResolvers">
+			<beans:list>
+				<beans:bean
+					class="org.springframework.web.servlet.view.BeanNameViewResolver">
+					<beans:property name="order" value="1" />
+				</beans:bean>
+				<beans:bean
+					class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+					<beans:property name="prefix" value="/WEB-INF/views/" />
+					<beans:property name="suffix" value=".jsp" />
+				</beans:bean>
+			</beans:list>
+		</beans:property>
+	</beans:bean>
+
+	<beans:bean id="cnManager"
+		class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+		<beans:property name="favorPathExtension" value="true" />
+		<beans:property name="ignoreAcceptHeader" value="true" />
+		<beans:property name="defaultContentType" value="text/html" />
+
+		<beans:property name="mediaTypes">
+			<beans:map>
+				<beans:entry key="html" value="text/html" />
+				<beans:entry key="xml" value="application/xml" />
+				<beans:entry key="json" value="application/json" />
+			</beans:map>
+		</beans:property>
+	</beans:bean>
+
+	<beans:bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<beans:property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<beans:property name="url"
+			value="jdbc:mysql://localhost:3306/salestock" />
+		<beans:property name="username" value="root" />
+		<beans:property name="password" value="" />
+	</beans:bean>
+
+	<!-- Hibernate 4 SessionFactory Bean definition -->
+	<beans:bean id="hibernate4AnnotatedSessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<beans:property name="dataSource" ref="dataSource" />
+		<beans:property name="annotatedClasses">
+			<beans:list>
+				<beans:value>com.salestock.model.Employee</beans:value>
+			</beans:list>
+		</beans:property>
+		<beans:property name="hibernateProperties">
+			<beans:props>
+				<beans:prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect
+				</beans:prop>
+				<beans:prop key="hibernate.show_sql">true</beans:prop>
+			</beans:props>
+		</beans:property>
+	</beans:bean>
+
+	<beans:bean id="saleStockRepository"
+		class="com.salestock.repository.SaleStockRepositoryImpl">
+		<beans:property name="sessionFactory"
+			ref="hibernate4AnnotatedSessionFactory" />
+	</beans:bean>
+	
+	<beans:bean id="saleStockService" class="com.salestock.service.SaleStockServiceImpl">
+		<beans:property name="saleStockRepository" ref="saleStockRepository"></beans:property>
+	</beans:bean>
+	<beans:bean id="saleStockController"
+		class="com.salestock.controller.SaleStockController">
+		<beans:property name="saleStockService" ref="saleStockService"></beans:property>
+	</beans:bean>
+	
+	<beans:bean id="salesTaxService" class="com.salestock.shoppingcart.service.impl.SalesTaxServiceImpl">
+	</beans:bean>
+	<beans:bean id="reportService" class="com.salestock.shoppingcart.service.impl.ReportServiceImpl">
+		<beans:property name="salesTaxService" ref="salesTaxService"></beans:property>
+	</beans:bean>
+	<beans:bean id="reportController" class="com.salestock.controller.ReportController">
+		<beans:property name="reportService" ref="reportService"></beans:property>
+	</beans:bean>
+	
+	<beans:bean id="dataReader" class="com.salestock.shoppingcart.dao.InvoiceDataReader">
+	</beans:bean>
+	<beans:bean id="shoppingCartService" class="com.salestock.shoppingcart.service.impl.ShoppingCartServiceImpl">
+		<beans:property name="dataReader" ref="dataReader"></beans:property>
+	</beans:bean>
+	<beans:bean id="shoppingCartController"
+		class="com.salestock.controller.ShoppingCartController">
+		<beans:property name="shoppingCartService" ref="shoppingCartService"></beans:property>
+	</beans:bean>
+	
+	<beans:bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<beans:property name="sessionFactory"
+			ref="hibernate4AnnotatedSessionFactory" />
+	</beans:bean>
+
+
+</beans:beans>
